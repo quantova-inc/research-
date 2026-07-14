@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: "QVRF, A Verifiable Random Function from Standardized Post Quantum Primitives, with Per Block Randomness Extracted from Byzantine Finality"
+message: "If you reference this work, please cite it as below."
+authors:
+  - name: "Quantova Research"
+version: "0.1"
+date-released: "2026-07-14"
+url: "https://github.com/quantova-inc/research-"
+repository-code: "https://github.com/Quantova/QVRF"
