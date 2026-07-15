@@ -48,7 +48,7 @@ obstacles.
 
 ### The Quantova QVRF flow
 
-QVRF comprises two constructions sharing one primitive base.
+QVRF comprises three constructions sharing one primitive base.
 
 The per block beacon reads the finality certificate the chain already
 produces and hashes it once. The certificate is an object no minority can
@@ -98,6 +98,30 @@ based STARK. Verification touches nothing but ML-DSA verification and SHA-3.
                        +---------------------------------+
 ```
 
+The sortition construction covers the setting the signature construction
+cannot, the one in which the drawing party is itself the adversary. A FIPS
+204 signature does not carry its randomizer, so no verifier can check that
+a signer derandomized, and an adversary drawing its own committee seat
+could hedge and re draw until the image fell under its threshold. Sortition
+draws instead from one time preimages committed under a Merkle root that is
+bound to the account's stake bond and registered before the beacon of any
+slot it serves is determined. For a fixed account and slot exactly one
+image exists, so there is nothing to re draw. The cost of a draw is one
+hash and one Merkle opening, with no signature, no argument, and no
+randomness supplied by the drawer.
+
+```
+ sortition draw
+
+ +--------------------+     +----------------------+     +--------------------------+
+ |  register          |     |  Draw(N)             |     |  verify                  |
+ |  R=MerkleRoot(p_i) |     |  d=H(p_N || seed[h]) |     |  MerkleVfy(R,N,p_N,π)    |
+ |  one time preimages| --> |  π=MerkleOpen(R,N)   | --> |  d=H(p_N || seed[h])     |
+ |  bound to a stake  |     |                      |     |  member iff d < T(stake) |
+ |  bond, in advance  |     |                      |     |                          |
+ +--------------------+     +----------------------+     +--------------------------+
+```
+
 ```
  primitive base
 
@@ -108,15 +132,18 @@ based STARK. Verification touches nothing but ML-DSA verification and SHA-3.
 
 ### Security results
 
-Three theorems in the paper fix what is proven and against what adversary.
+Four theorems in the paper fix what is proven and against what adversary.
 
 Theorem 1, unique provability. If ML-DSA is strongly existentially
 unforgeable and the STARK has knowledge soundness error ε_STARK, then any
 adversary producing two verifying outputs for one input under one public
 key breaks one of the two, with Adv_Uniq(A) ≤ Adv_SUF-CMA(B) + ε_STARK.
-Derandomized signing is load bearing here. Under hedged ML-DSA a message
-admits many signatures and unique provability fails, so the deterministic
-mode is enforced as a consensus rule checkable from the signature encoding.
+Derandomized signing is load bearing here, and it is an assumption about
+the signer rather than a rule a protocol can check, since a FIPS 204
+signature does not carry its randomizer. The per input construction is
+therefore deployed only where the signer is honest or has no incentive to
+re draw. Wherever the drawing party is the adversary, the sortition
+construction is used instead.
 
 Theorem 2, pseudorandomness. Modelling the XOF as a quantum random oracle,
 for every adversary issuing q queries, Adv_PR(A) ≤ Adv_EUF-CMA(B) +
@@ -129,6 +156,15 @@ yields a consensus safety break with advantage at least ε − q · 2^-256.
 Beacon unpredictability is therefore exactly as strong as the safety of the
 ledger it runs on, and withholding forfeits the slot to the liveness path
 rather than granting a resample.
+
+Theorem 4, structural uniqueness for sortition. For any registered root and
+slot index, no adversary produces two accepted draws with distinct images
+except with advantage at most q · 2^-128 in the random oracle model.
+Uniqueness here is by construction rather than by assumption. There is no
+randomizer to vary and nothing to re draw, and because the root is
+committed before the beacon of any slot it serves is determined, the
+preimages cannot have been selected for a favourable image. The
+construction rests on SHA-3 alone.
 
 ### Work factors under quantum attack
 
@@ -186,8 +222,18 @@ post quantum VRF, which precedes this work, is expressly not claimed.
 - Theorem 3 is conditional on the concrete safety advantage of the
   deployed protocol, which its own analysis supplies.
 - The pseudorandomness bound is stated in standard, non tightened form.
-- Unique provability requires strong unforgeability and derandomized
-  ML-DSA. Hedged signing invalidates Theorem 1.
+- Theorem 1 assumes a derandomized signer. That assumption is not
+  verifiable from a FIPS 204 signature, so the per input construction is
+  unsuitable wherever the drawing party is the adversary, and the sortition
+  construction is used there instead.
+- Theorem 4 gives uniqueness per account and slot. Stake splitting remains
+  available at the cost of a full bond per draw, and it buys draws, not
+  expected seats. Committee membership is stake neutral under splitting,
+  and a stake neutral leader weighting is a requirement on the deployed
+  protocol verified by conformance testing rather than proven here.
+- An account may draw, observe an unfavourable image, and reveal nothing.
+  This forfeits a seat rather than obtaining one, and the paper records it
+  as an accepted residual rather than a closed case.
 - STARK knowledge soundness is modular, with ε_STARK drawn from the
   prover's specification.
 

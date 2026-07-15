@@ -18,7 +18,7 @@ outright. QVRF is a verifiable random function whose security rests
 exclusively on NIST standardized primitives, SHA-3 (FIPS 202) and ML-DSA
 (FIPS 204), with a stateless hash based option from SLH-DSA (FIPS 205).
 
-It comprises two constructions. A per input verifiable random function
+It comprises three constructions. A per input verifiable random function
 derives its image from a derandomized ML-DSA signature and a transparent
 hash based argument of correct evaluation, with unique provability under
 strong existential unforgeability and pseudorandomness in the quantum
@@ -26,12 +26,16 @@ random oracle model. A per block beacon extracts protocol randomness from
 the Byzantine fault tolerant finality certificate that consensus already
 produces, with an explicit reduction showing that any adversary biasing the
 beacon yields an adversary breaching consensus safety. The beacon costs one
-hash evaluation per block and no additional protocol message.
+hash evaluation per block and no additional protocol message. A sortition
+construction draws from one time preimages committed under a Merkle root
+bound to a stake bond, giving uniqueness that is structural rather than
+assumed, for the setting in which the drawing party is the adversary and no
+assumption about its signing behaviour is available.
 
 The paper gives the security games, the reductions with concrete advantage
 bounds, a quantitative analysis of classical and quantum work factors
-against each component, and an explicit account of which results are proven
-and which are conjectural pending review.
+against each component, and an explicit account of what is proven and what
+is assumed.
 
 ## What is claimed, precisely
 
@@ -53,8 +57,13 @@ composition, the deployment, and the finality extraction.
   BFT protocol it plugs into.
 - The per input pseudorandomness bound is stated in standard, non tightened
   form.
-- Everything assumes the deterministic ML-DSA mode. Hedged mode breaks
-  uniqueness.
+- Theorem 1 assumes a derandomized signer, an assumption a verifier cannot
+  check from a FIPS 204 signature. The per input construction is unsuitable
+  where the drawing party is the adversary, and the sortition construction
+  is used there instead.
+- Sortition uniqueness is per account and slot. Stake splitting buys draws
+  at a full bond each, not expected seats, and stake neutral leader
+  weighting is a deployed protocol requirement verified by conformance.
 - The STARK is treated as a black box with assumed soundness.
 
 No result is represented as unconditionally secure.
